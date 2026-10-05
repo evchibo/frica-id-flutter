@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1
+
+- Fix type cast error (`type 'Null' is not a subtype of 'String' in type cast`) when parsing user profile claims and token responses with optional fields.
+- Robust parsing for `sub`, `name`, `email`, and `phoneNumber`.
+
 ## 1.0.0
 
 - Initial release of `frica_id_flutter`.
