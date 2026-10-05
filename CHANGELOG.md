@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Enhance error message when fetching user profile to include full HTTP status code and response payload.
+
 ## 1.0.1
 
 - Fix type cast error (`type 'Null' is not a subtype of 'String' in type cast`) when parsing user profile claims and token responses with optional fields.

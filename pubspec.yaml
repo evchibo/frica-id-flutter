@@ -1,6 +1,6 @@
 name: frica_id_flutter
 description: Official Flutter SDK for Sign in with Frica ID. OAuth 2.1 PKCE authorization, user management, and seamless authentication for iOS, Android, and Web.
-version: 1.0.1
+version: 1.0.2
 homepage: https://frica.id
 repository: https://github.com/evchibo/fricaid/tree/main/packages/frica_id_flutter
 issue_tracker: https://github.com/evchibo/fricaid/issues

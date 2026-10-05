@@ -181,7 +181,7 @@ class FricaClient {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('Failed to fetch user profile: ${response.statusCode}');
+      throw Exception('Failed to fetch user profile (${response.statusCode}): ${response.body}');
     }
 
     final body = jsonDecode(response.body);
