@@ -37,21 +37,25 @@ class FricaTokenResponse {
       DateTime.now().isAfter(expiresAt.subtract(const Duration(seconds: 60)));
 
   factory FricaTokenResponse.fromJson(Map<String, dynamic> json) {
-    final expiresIn = json['expires_in'] is num
-        ? (json['expires_in'] as num).toInt()
-        : int.tryParse(json['expires_in']?.toString() ?? '') ?? 3600;
+    final payload = (json.containsKey('data') && json['data'] is Map<String, dynamic>)
+        ? json['data'] as Map<String, dynamic>
+        : json;
+
+    final expiresIn = payload['expires_in'] is num
+        ? (payload['expires_in'] as num).toInt()
+        : int.tryParse(payload['expires_in']?.toString() ?? '') ?? 3600;
     DateTime? expAt;
-    if (json['expires_at'] != null) {
-      expAt = DateTime.tryParse(json['expires_at'].toString());
+    if (payload['expires_at'] != null) {
+      expAt = DateTime.tryParse(payload['expires_at'].toString());
     }
 
     return FricaTokenResponse(
-      accessToken: (json['access_token'] ?? json['accessToken'] ?? '')?.toString() ?? '',
-      tokenType: (json['token_type'] ?? json['tokenType'] ?? 'Bearer')?.toString() ?? 'Bearer',
+      accessToken: (payload['access_token'] ?? payload['accessToken'] ?? '')?.toString() ?? '',
+      tokenType: (payload['token_type'] ?? payload['tokenType'] ?? 'Bearer')?.toString() ?? 'Bearer',
       expiresIn: expiresIn,
-      refreshToken: (json['refresh_token'] ?? json['refreshToken'])?.toString(),
-      idToken: (json['id_token'] ?? json['idToken'])?.toString(),
-      scope: json['scope']?.toString(),
+      refreshToken: (payload['refresh_token'] ?? payload['refreshToken'])?.toString(),
+      idToken: (payload['id_token'] ?? payload['idToken'])?.toString(),
+      scope: payload['scope']?.toString(),
       expiresAt: expAt,
     );
   }

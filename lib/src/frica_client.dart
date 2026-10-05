@@ -94,8 +94,14 @@ class FricaClient {
     // Exchange code for tokens
     final tokens = await exchangeCode(code, verifier);
 
-    // Fetch and cache user profile
-    await getUserInfo(tokens.accessToken);
+    // Fetch and cache user profile (best-effort so token flow is resilient)
+    try {
+      if (tokens.accessToken.trim().isNotEmpty) {
+        await getUserInfo(tokens.accessToken);
+      }
+    } catch (_) {
+      // Profile can be fetched on demand
+    }
 
     return tokens;
   }
@@ -119,13 +125,16 @@ class FricaClient {
     );
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final payload = (data.containsKey('data') && data['data'] is Map<String, dynamic>)
+        ? data['data'] as Map<String, dynamic>
+        : data;
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      final err = data['error_description'] ?? data['error'] ?? data['message'] ?? 'Token exchange failed';
+      final err = payload['error_description'] ?? payload['error'] ?? payload['message'] ?? 'Token exchange failed';
       throw Exception('Frica Token Exchange error: $err');
     }
 
-    final tokens = FricaTokenResponse.fromJson(data);
+    final tokens = FricaTokenResponse.fromJson(payload);
     await _storeTokens(tokens);
     return tokens;
   }
@@ -152,14 +161,17 @@ class FricaClient {
     );
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final payload = (data.containsKey('data') && data['data'] is Map<String, dynamic>)
+        ? data['data'] as Map<String, dynamic>
+        : data;
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       await signOut();
-      final err = data['error_description'] ?? data['error'] ?? 'Token refresh failed';
+      final err = payload['error_description'] ?? payload['error'] ?? 'Token refresh failed';
       throw Exception('Frica Token Refresh error: $err');
     }
 
-    final tokens = FricaTokenResponse.fromJson(data);
+    final tokens = FricaTokenResponse.fromJson(payload);
     await _storeTokens(tokens);
     return tokens;
   }
@@ -167,15 +179,16 @@ class FricaClient {
   /// Fetches the authenticated user profile.
   Future<FricaUserInfo> getUserInfo([String? accessToken]) async {
     final token = accessToken ?? await getValidAccessToken();
-    if (token == null) {
+    if (token == null || token.trim().isEmpty) {
       throw Exception('No valid access token available');
     }
 
+    final trimmed = token.trim();
     final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
     final response = await http.get(
       Uri.parse('$base/oauth/userinfo'),
       headers: {
-        'Authorization': 'Bearer $token',
+        'Authorization': 'Bearer $trimmed',
         'Accept': 'application/json',
       },
     );
@@ -185,9 +198,9 @@ class FricaClient {
     }
 
     final body = jsonDecode(response.body);
-    final data = (body is Map<String, dynamic> && body.containsKey('data'))
+    final data = (body is Map<String, dynamic> && body.containsKey('data') && body['data'] is Map<String, dynamic>)
         ? body['data'] as Map<String, dynamic>
-        : body as Map<String, dynamic>;
+        : (body is Map<String, dynamic> ? body : <String, dynamic>{});
 
     final user = FricaUserInfo.fromJson(data);
     await _storage.write(_keyUser, jsonEncode(user.toJson()));

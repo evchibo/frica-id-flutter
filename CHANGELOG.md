@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.3
+
+- Robust response payload unpacking: seamlessly support both standard RFC OAuth responses and nested envelopes.
+- Graceful non-blocking user profile caching on authorization code redirect callbacks.
+- Whitespace trimming and safety checks on Bearer access tokens before `/oauth/userinfo` retrieval.
+
 ## 1.0.2
 
 - Enhance error message when fetching user profile to include full HTTP status code and response payload.
