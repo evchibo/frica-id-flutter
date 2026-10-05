@@ -45,16 +45,16 @@ class FricaUserInfo {
 
   factory FricaUserInfo.fromJson(Map<String, dynamic> json) {
     return FricaUserInfo(
-      sub: (json['sub'] ?? json['id'] ?? '') as String,
-      name: (json['name'] ?? '') as String,
-      email: (json['email'] ?? '') as String,
+      sub: (json['sub'] ?? json['id'] ?? '')?.toString() ?? '',
+      name: (json['name'] ?? json['preferred_username'] ?? '')?.toString() ?? '',
+      email: (json['email'] ?? json['email_address'] ?? '')?.toString() ?? '',
       emailVerified: json['email_verified'] == true ||
           json['emailVerified'] == true,
-      phoneNumber: (json['phone_number'] ?? json['phoneNumber']) as String?,
-      avatarUrl: (json['avatar_url'] ?? json['avatarUrl'] ?? json['picture']) as String?,
-      country: json['country'] as String?,
-      role: json['role'] as String?,
-      status: json['status'] as String?,
+      phoneNumber: (json['phone_number'] ?? json['phoneNumber'] ?? json['phone'])?.toString(),
+      avatarUrl: (json['avatar_url'] ?? json['avatarUrl'] ?? json['picture'])?.toString(),
+      country: json['country']?.toString(),
+      role: json['role']?.toString(),
+      status: json['status']?.toString(),
       rawClaims: Map<String, dynamic>.from(json),
     );
   }
