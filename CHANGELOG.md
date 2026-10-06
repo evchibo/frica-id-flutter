@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+- Added `webRedirectUri` to `FricaConfig` for explicit Flutter Web redirect handling.
+- Automatically fall back to `Uri.base.origin` on Flutter Web when a mobile custom scheme (`supfrica://`) is provided.
+- Added `handleWebCallbackIfPresent()` automated helper for Flutter Web callbacks.
+
 ## 1.0.3
 
 - Robust response payload unpacking: seamlessly support both standard RFC OAuth responses and nested envelopes.
