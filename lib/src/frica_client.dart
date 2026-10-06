@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'models/config.dart';
@@ -23,6 +24,22 @@ class FricaClient {
     _storage = config.storage ?? InMemoryTokenStorage();
   }
 
+  /// Resolves the effective redirect URI taking into account Flutter Web vs Mobile platforms.
+  String get effectiveRedirectUri {
+    if (kIsWeb) {
+      if (config.webRedirectUri != null && config.webRedirectUri!.isNotEmpty) {
+        return config.webRedirectUri!;
+      }
+      // If mobile custom scheme is configured, on Web fallback to current window origin if available
+      if (!config.redirectUri.startsWith('http://') && !config.redirectUri.startsWith('https://')) {
+        try {
+          return Uri.base.origin;
+        } catch (_) {}
+      }
+    }
+    return config.redirectUri;
+  }
+
   /// Builds the OAuth 2.1 PKCE authorization URL and persists state and verifier.
   Future<Uri> getAuthorizationUrl({
     String? scope,
@@ -42,7 +59,7 @@ class FricaClient {
       queryParameters: {
         'response_type': 'code',
         'client_id': config.clientId,
-        'redirect_uri': config.redirectUri,
+        'redirect_uri': effectiveRedirectUri,
         'scope': scope ?? config.defaultScope,
         'code_challenge': challenge,
         'code_challenge_method': 'S256',
@@ -106,6 +123,18 @@ class FricaClient {
     return tokens;
   }
 
+  /// For Flutter Web: Checks if current browser window URL contains OAuth callback query params (?code=...) and completes sign-in automatically.
+  Future<FricaTokenResponse?> handleWebCallbackIfPresent() async {
+    if (!kIsWeb) return null;
+    try {
+      final uri = Uri.base;
+      if (uri.queryParameters.containsKey('code')) {
+        return await handleRedirectUri(uri);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// Exchanges the authorization code and PKCE verifier for OAuth 2.1 access and refresh tokens.
   Future<FricaTokenResponse> exchangeCode(String code, String codeVerifier) async {
     final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
@@ -119,7 +148,7 @@ class FricaClient {
         'grant_type': 'authorization_code',
         'client_id': config.clientId,
         'code': code,
-        'redirect_uri': config.redirectUri,
+        'redirect_uri': effectiveRedirectUri,
         'code_verifier': codeVerifier,
       }),
     );

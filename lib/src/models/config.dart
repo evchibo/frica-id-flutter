@@ -8,6 +8,10 @@ class FricaConfig {
   /// The redirect URI registered for this application (e.g. `myapp://oauth-callback`).
   final String redirectUri;
 
+  /// Optional web-specific redirect URI for Flutter Web (e.g. `http://localhost:3000/auth/callback` or `https://web.supfrica.com/auth/callback`).
+  /// When running on Flutter Web, this URI takes precedence over custom mobile schemes.
+  final String? webRedirectUri;
+
   /// Base URL of the authoritative Frica ID API backend. Defaults to `https://api.frica.id`.
   final String issuerUrl;
 
@@ -23,6 +27,7 @@ class FricaConfig {
   const FricaConfig({
     required this.clientId,
     required this.redirectUri,
+    this.webRedirectUri,
     this.issuerUrl = 'https://api.frica.id',
     this.portalUrl = 'https://frica.id',
     this.defaultScope = 'openid profile email',
