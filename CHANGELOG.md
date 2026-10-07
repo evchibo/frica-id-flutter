@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.6
+
+- Switched pub.dev releases to Dart's official reusable GitHub Actions publishing workflow.
+- Fixed trusted publishing so releases authenticate with short-lived GitHub OIDC credentials instead of interactive Google authorization.
+- Preserved tag-based release publishing with no long-lived pub.dev secret.
+
 ## 1.0.5
 
 - Added automated CI validation and pub.dev publish dry runs.
