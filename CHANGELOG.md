@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.5
+
+- Added automated CI validation and pub.dev publish dry runs.
+- Added secure pub.dev automated publishing through GitHub Actions and OIDC.
+- Added release tag/version validation before publishing.
+- Updated installation documentation for the current package release.
+
 ## 1.0.4
 
 - Added `webRedirectUri` to `FricaConfig` for explicit Flutter Web redirect handling.
