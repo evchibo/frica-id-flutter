@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.7
+
+- Replaced the abbreviated Apache notice with the canonical Apache License 2.0 text so pub.dev can recognize the OSI-approved license.
+
 ## 1.0.6
 
 - Switched pub.dev releases to Dart's official reusable GitHub Actions publishing workflow.

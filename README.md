@@ -22,7 +22,7 @@ Add `frica_id_flutter` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  frica_id_flutter: ^1.0.6
+  frica_id_flutter: ^1.0.7
 ```
 
 Then run:
