@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0
+## 1.0.8
 
 - Added comprehensive KYC and identity verification support:
   - Added strongly-typed KYC claims to `FricaUserInfo` (`kycStatus`, `kycTier`, `kycVerifiedAt`, `kycLegalFirstName`, `kycLegalLastName`, `kycDateOfBirth`, `kycNationality`, `kycCountryOfResidence`).
