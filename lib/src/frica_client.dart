@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'models/config.dart';
 import 'models/token_response.dart';
 import 'models/user_info.dart';
+import 'models/kyc_models.dart';
 import 'pkce.dart';
 import 'storage/token_storage.dart';
 
@@ -316,6 +317,153 @@ class FricaClient {
     await _storage.delete(_keyUser);
     await _storage.delete(_keyVerifier);
     await _storage.delete(_keyState);
+  }
+
+  /// Launches the hosted KYC verification session portal in the system browser.
+  Future<bool> launchKycVerification(
+    String hostedUrl, {
+    LaunchMode mode = LaunchMode.externalApplication,
+  }) async {
+    return await launchUrl(
+      Uri.parse(hostedUrl),
+      mode: mode,
+    );
+  }
+
+  /// Creates a hosted KYC verification session via API key or access token.
+  Future<FricaKycSession> createKycSession({
+    String? apiKey,
+    String? accessToken,
+    String? targetUserId,
+    String? requestedTier,
+    String? callbackUrl,
+  }) async {
+    final token = accessToken ?? (apiKey == null ? await getValidAccessToken() : null);
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (apiKey != null && apiKey.isNotEmpty) {
+      headers['x-api-key'] = apiKey;
+    } else if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    } else {
+      throw Exception('Either apiKey or accessToken must be provided to create a KYC session');
+    }
+
+    final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final body = <String, dynamic>{};
+    if (targetUserId != null) body['targetUserId'] = targetUserId;
+    if (requestedTier != null) body['requestedTier'] = requestedTier;
+    if (callbackUrl != null) body['callbackUrl'] = callbackUrl;
+
+    final response = await http.post(
+      Uri.parse('$base/v1/developer/kyc/sessions'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    final data = jsonDecode(response.body);
+    final payload = (data is Map<String, dynamic> && data.containsKey('data') && data['data'] is Map<String, dynamic>)
+        ? data['data'] as Map<String, dynamic>
+        : (data is Map<String, dynamic> ? data : <String, dynamic>{});
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final err = payload['message'] ?? payload['error'] ?? 'Failed to create KYC session';
+      throw Exception('Frica KYC session creation error: $err');
+    }
+
+    return FricaKycSession.fromJson(payload);
+  }
+
+  /// Fetches verification status and verified claims for a KYC session.
+  Future<FricaKycVerification> getKycVerification(
+    String verificationId, {
+    String? apiKey,
+    String? accessToken,
+  }) async {
+    final token = accessToken ?? (apiKey == null ? await getValidAccessToken() : null);
+    final headers = <String, String>{
+      'Accept': 'application/json',
+    };
+    if (apiKey != null && apiKey.isNotEmpty) {
+      headers['x-api-key'] = apiKey;
+    } else if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    } else {
+      throw Exception('Either apiKey or accessToken must be provided to fetch KYC verification');
+    }
+
+    final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final response = await http.get(
+      Uri.parse('$base/v1/developer/kyc/verifications/$verificationId'),
+      headers: headers,
+    );
+
+    final data = jsonDecode(response.body);
+    final payload = (data is Map<String, dynamic> && data.containsKey('data') && data['data'] is Map<String, dynamic>)
+        ? data['data'] as Map<String, dynamic>
+        : (data is Map<String, dynamic> ? data : <String, dynamic>{});
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final err = payload['message'] ?? payload['error'] ?? 'Failed to fetch KYC verification';
+      throw Exception('Frica KYC verification error: $err');
+    }
+
+    return FricaKycVerification.fromJson(payload);
+  }
+
+  /// Performs an instant server-to-server KYC identity check against official registries.
+  Future<FricaInstantCheckResult> instantKycCheck({
+    required String country,
+    required String idType,
+    required String idNumber,
+    String? firstName,
+    String? lastName,
+    String? dateOfBirth,
+    String? apiKey,
+    String? accessToken,
+  }) async {
+    final token = accessToken ?? (apiKey == null ? await getValidAccessToken() : null);
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (apiKey != null && apiKey.isNotEmpty) {
+      headers['x-api-key'] = apiKey;
+    } else if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    } else {
+      throw Exception('Either apiKey or accessToken must be provided for instant KYC check');
+    }
+
+    final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final body = <String, dynamic>{
+      'country': country,
+      'idType': idType,
+      'idNumber': idNumber,
+    };
+    if (firstName != null) body['firstName'] = firstName;
+    if (lastName != null) body['lastName'] = lastName;
+    if (dateOfBirth != null) body['dateOfBirth'] = dateOfBirth;
+
+    final response = await http.post(
+      Uri.parse('$base/v1/developer/kyc/instant-check'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    final data = jsonDecode(response.body);
+    final payload = (data is Map<String, dynamic> && data.containsKey('data') && data['data'] is Map<String, dynamic>)
+        ? data['data'] as Map<String, dynamic>
+        : (data is Map<String, dynamic> ? data : <String, dynamic>{});
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final err = payload['message'] ?? payload['error'] ?? 'Failed to perform instant KYC check';
+      throw Exception('Frica Instant KYC check error: $err');
+    }
+
+    return FricaInstantCheckResult.fromJson(payload);
   }
 
   Future<void> _storeTokens(FricaTokenResponse tokens) async {

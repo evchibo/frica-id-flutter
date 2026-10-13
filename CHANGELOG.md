@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+- Added comprehensive KYC and identity verification support:
+  - Added strongly-typed KYC claims to `FricaUserInfo` (`kycStatus`, `kycTier`, `kycVerifiedAt`, `kycLegalFirstName`, `kycLegalLastName`, `kycDateOfBirth`, `kycNationality`, `kycCountryOfResidence`).
+  - Added helper getters on `FricaUserInfo`: `isKycApproved`, `isKycUnderReview`, `isKycPending`, `isKycRejected`.
+  - Added Developer KYC Models: `FricaKycSession`, `FricaKycVerification`, `FricaInstantCheckResult`.
+  - Added `FricaClient.launchKycVerification()` to launch the hosted verification portal in the browser.
+  - Added `FricaClient.createKycSession()`, `FricaClient.getKycVerification()`, and `FricaClient.instantKycCheck()` for developer KYC integration.
+  - Added unit test suite covering PKCE generation, KYC claim parsing, and model serialization.
+
 ## 1.0.7
 
 - Replaced the abbreviated Apache notice with the canonical Apache License 2.0 text so pub.dev can recognize the OSI-approved license.

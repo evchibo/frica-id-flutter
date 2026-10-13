@@ -170,9 +170,48 @@ void listenToAuthCallbacks(FricaClient client) {
 | `refreshToken()` | `Future<FricaTokenResponse>` | Refreshes the session using the refresh token |
 | `signOut()` | `Future<void>` | Revokes tokens and clears session storage |
 | `isAuthenticated()` | `Future<bool>` | Checks if an active session exists |
+| `launchKycVerification(String url)` | `Future<bool>` | Launches the hosted KYC verification portal in system browser |
+| `createKycSession(...)` | `Future<FricaKycSession>` | Initiates a hosted developer KYC verification session |
+| `getKycVerification(String id)` | `Future<FricaKycVerification>` | Retrieves KYC verification result and verified claims |
+| `instantKycCheck(...)` | `Future<FricaInstantCheckResult>` | Runs instant identity check against official registries (BVN, NIN) |
+
+---
+
+## KYC & Identity Verification
+
+Frica ID supports tiered KYC identity verification (`TIER_1`, `TIER_2`, `TIER_3`) across African identity authorities.
+
+### Requesting KYC Claims
+
+Configure `defaultScope` or request `kyc.status` and `kyc.identity` during sign-in:
+
+```dart
+final fricaClient = FricaClient(
+  config: FricaConfig(
+    clientId: 'YOUR_CLIENT_ID',
+    redirectUri: 'myapp://oauth-callback',
+    defaultScope: 'openid profile email kyc.status kyc.identity',
+  ),
+);
+
+final user = await fricaClient.getUserInfo();
+print('KYC Status: ${user.kycStatus}');          // 'APPROVED', 'UNDER_REVIEW', 'PENDING'
+print('KYC Tier: ${user.kycTier}');              // 'TIER_2'
+print('Is Approved: ${user.isKycApproved}');      // true
+print('Legal Name: ${user.kycLegalFirstName} ${user.kycLegalLastName}');
+print('Nationality: ${user.kycNationality}');
+```
+
+### Launching Hosted Verification
+
+```dart
+// Launch hosted KYC verification flow
+await fricaClient.launchKycVerification(session.hostedUrl);
+```
 
 ---
 
 ## License
 
 Apache-2.0 © Frica ID Team
+
