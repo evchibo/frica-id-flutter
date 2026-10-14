@@ -174,6 +174,12 @@ void listenToAuthCallbacks(FricaClient client) {
 | `createKycSession(...)` | `Future<FricaKycSession>` | Initiates a hosted developer KYC verification session |
 | `getKycVerification(String id)` | `Future<FricaKycVerification>` | Retrieves KYC verification result and verified claims |
 | `instantKycCheck(...)` | `Future<FricaInstantCheckResult>` | Runs instant identity check against official registries (BVN, NIN) |
+| `getDeveloperWallet(...)` | `Future<FricaWallet>` | Queries developer organization token wallet and remaining KYC checks |
+| `topupDeveloperWallet(...)` | `Future<Map<String, dynamic>>` | Tops up organization tokens via Card, Mobile Money, Crypto, or Sandbox |
+| `getUserWallet(...)` | `Future<FricaWallet>` | Retrieves user sovereign token wallet |
+| `topupUserWallet(...)` | `Future<Map<String, dynamic>>` | Tops up user tokens with bonus token support |
+| `payServiceWithTokens(...)` | `Future<Map<String, dynamic>>` | Pays for subscription upgrades (Pro, Pro+, Business) with tokens |
+| `verifyDigitalPassport(String id)`| `Future<FricaPassportVerificationResult>` | Verifies public authenticity of digital passport QR codes |
 
 ---
 
@@ -207,6 +213,38 @@ print('Nationality: ${user.kycNationality}');
 ```dart
 // Launch hosted KYC verification flow
 await fricaClient.launchKycVerification(session.hostedUrl);
+```
+
+---
+
+## Sovereign Wallet & Token Management (`FRICA`)
+
+Commercial KYC verifications cost **0.45 FRICA tokens** ($0.45 USD). Developers can monitor verification runway and top up balances directly in Flutter apps:
+
+```dart
+// Check remaining KYC verification runway
+final wallet = await fricaClient.getDeveloperWallet(apiKey: 'YOUR_API_KEY');
+print('Available Balance: ${wallet.availableBalance} FRICA');
+print('Remaining KYC Checks: ${wallet.remainingKycChecks}');
+
+// Top up tokens via Mobile Money (M-Pesa, MTN MoMo)
+await fricaClient.topupDeveloperWallet(
+  amountUsd: 100.0,
+  paymentMethod: 'MOBILE_MONEY',
+  mobileMoneyProvider: 'MPESA',
+  phoneNumber: '+254712345678',
+  apiKey: 'YOUR_API_KEY',
+);
+```
+
+### Digital Passport Authenticity Verification
+
+```dart
+// Publicly verify scanned QR codes or passport identifiers
+final result = await fricaClient.verifyDigitalPassport('FRICA-PASSPORT-KWAME-001');
+if (result.verified) {
+  print('Verified Citizen: ${result.fullName} (${result.country})');
+}
 ```
 
 ---

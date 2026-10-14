@@ -125,4 +125,64 @@ void main() {
       expect(result.providerReference, equals('ref_nid_5544'));
     });
   });
+
+  group('Wallet & Token Models Tests', () {
+    test('FricaWallet deserialization and remaining checks getter', () {
+      final json = {
+        'id': 'wal_dev_123',
+        'ownerId': 'app_456',
+        'ownerType': 'DEVELOPER_ORG',
+        'currency': 'FRICA',
+        'availableBalance': 45.0,
+        'lockedBalance': 0.0,
+        'totalToppedUp': 50.0,
+      };
+
+      final wallet = FricaWallet.fromJson(json);
+      expect(wallet.id, equals('wal_dev_123'));
+      expect(wallet.availableBalance, equals(45.0));
+      expect(wallet.currency, equals('FRICA'));
+      // 45.0 / 0.45 = 100 verification checks
+      expect(wallet.remainingKycChecks, equals(100));
+
+      final serialized = wallet.toJson();
+      expect(serialized['availableBalance'], equals(45.0));
+      expect(serialized['remainingKycChecks'], equals(100));
+    });
+
+    test('FricaWalletTransaction deserialization', () {
+      final txJson = {
+        'id': 'tx_9988',
+        'walletId': 'wal_dev_123',
+        'amount': 0.45,
+        'balanceBefore': 45.0,
+        'balanceAfter': 44.55,
+        'type': 'KYC_DEDUCTION',
+        'status': 'COMPLETED',
+        'reference': 'ref_tx_9988',
+        'createdAt': '2026-10-14T12:00:00Z',
+      };
+
+      final tx = FricaWalletTransaction.fromJson(txJson);
+      expect(tx.id, equals('tx_9988'));
+      expect(tx.amount, equals(0.45));
+      expect(tx.balanceAfter, equals(44.55));
+      expect(tx.type, equals('KYC_DEDUCTION'));
+    });
+
+    test('FricaPassportVerificationResult deserialization', () {
+      final passportJson = {
+        'verified': true,
+        'identifier': 'FRICA-PASSPORT-KWAME-001',
+        'fullName': 'Kwame Mensah',
+        'country': 'GH',
+        'status': 'APPROVED',
+      };
+
+      final passport = FricaPassportVerificationResult.fromJson(passportJson);
+      expect(passport.verified, isTrue);
+      expect(passport.identifier, equals('FRICA-PASSPORT-KWAME-001'));
+      expect(passport.fullName, equals('Kwame Mensah'));
+    });
+  });
 }

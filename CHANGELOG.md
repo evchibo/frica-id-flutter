@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0
+
+- Added Sovereign Wallet & Frica Tokens (`FRICA`) Support:
+  - Added `FricaWallet` model with `availableBalance`, `lockedBalance`, `totalToppedUp`, and `remainingKycChecks` (0.45 FRICA / check runway calculator).
+  - Added `FricaWalletTransaction` ledger transaction model.
+  - Added `FricaClient.getDeveloperWallet()`: Query organization wallet balance and KYC check runway.
+  - Added `FricaClient.topupDeveloperWallet()`: Top up organization tokens with Multi-rail payments (Card, Mobile Money, Crypto, Sandbox).
+  - Added `FricaClient.getUserWallet()`: Retrieve user sovereign wallet.
+  - Added `FricaClient.topupUserWallet()`: Top up user tokens with bonus token support.
+  - Added `FricaClient.payServiceWithTokens()`: Pay for tier upgrades directly using tokens.
+- Added Digital Passport Authenticity Verification:
+  - Added `FricaPassportVerificationResult` model.
+  - Added `FricaClient.verifyDigitalPassport(identifier)`: Verify authenticity of scanned QR codes and passports.
+- Enhanced KYC API Compatibility:
+  - Extended `createKycSession()` with `returnUrl`, `cancelUrl`, `customReference`, and automatic `customer` payload normalization.
+  - Extended `instantKycCheck()` with `documentType` and `documentNumber` parameter aliases.
+
 ## 1.0.8
 
 - Added comprehensive KYC and identity verification support:

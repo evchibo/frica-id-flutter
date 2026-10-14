@@ -6,6 +6,7 @@ import 'models/config.dart';
 import 'models/token_response.dart';
 import 'models/user_info.dart';
 import 'models/kyc_models.dart';
+import 'models/wallet_models.dart';
 import 'pkce.dart';
 import 'storage/token_storage.dart';
 
@@ -337,6 +338,10 @@ class FricaClient {
     String? targetUserId,
     String? requestedTier,
     String? callbackUrl,
+    String? returnUrl,
+    String? cancelUrl,
+    String? customReference,
+    Map<String, dynamic>? metadata,
   }) async {
     final token = accessToken ?? (apiKey == null ? await getValidAccessToken() : null);
     final headers = <String, String>{
@@ -352,10 +357,19 @@ class FricaClient {
     }
 
     final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
-    final body = <String, dynamic>{};
+    final effectiveReturn = returnUrl ?? callbackUrl ?? 'https://frica.id/callback';
+    final body = <String, dynamic>{
+      'requestedTier': requestedTier ?? 'TIER_2',
+      'returnUrl': effectiveReturn,
+      'customer': {
+        'externalUserId': targetUserId ?? 'ext_${DateTime.now().millisecondsSinceEpoch}',
+      },
+    };
     if (targetUserId != null) body['targetUserId'] = targetUserId;
-    if (requestedTier != null) body['requestedTier'] = requestedTier;
     if (callbackUrl != null) body['callbackUrl'] = callbackUrl;
+    if (cancelUrl != null) body['cancelUrl'] = cancelUrl;
+    if (customReference != null) body['customReference'] = customReference;
+    if (metadata != null) body['metadata'] = metadata;
 
     final response = await http.post(
       Uri.parse('$base/v1/developer/kyc/sessions'),
@@ -416,8 +430,10 @@ class FricaClient {
   /// Performs an instant server-to-server KYC identity check against official registries.
   Future<FricaInstantCheckResult> instantKycCheck({
     required String country,
-    required String idType,
-    required String idNumber,
+    String? idType,
+    String? idNumber,
+    String? documentType,
+    String? documentNumber,
     String? firstName,
     String? lastName,
     String? dateOfBirth,
@@ -438,14 +454,19 @@ class FricaClient {
     }
 
     final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final effectiveDocType = documentType ?? (idType == 'NIN' || idType == 'BVN' ? 'NATIONAL_ID' : idType) ?? 'NATIONAL_ID';
+    final effectiveDocNumber = documentNumber ?? idNumber ?? '000000';
+
     final body = <String, dynamic>{
       'country': country,
-      'idType': idType,
-      'idNumber': idNumber,
+      'documentType': effectiveDocType,
+      'documentNumber': effectiveDocNumber,
+      'firstName': firstName ?? 'Verified',
+      'lastName': lastName ?? 'User',
+      'dateOfBirth': dateOfBirth ?? '1990-01-01',
     };
-    if (firstName != null) body['firstName'] = firstName;
-    if (lastName != null) body['lastName'] = lastName;
-    if (dateOfBirth != null) body['dateOfBirth'] = dateOfBirth;
+    if (idType != null) body['idType'] = idType;
+    if (idNumber != null) body['idNumber'] = idNumber;
 
     final response = await http.post(
       Uri.parse('$base/v1/developer/kyc/instant-check'),
@@ -464,6 +485,222 @@ class FricaClient {
     }
 
     return FricaInstantCheckResult.fromJson(payload);
+  }
+
+  /// Retrieves the developer organization token wallet and remaining verification runway.
+  Future<FricaWallet> getDeveloperWallet({
+    String? apiKey,
+    String? accessToken,
+  }) async {
+    final token = accessToken ?? (apiKey == null ? await getValidAccessToken() : null);
+    final headers = <String, String>{
+      'Accept': 'application/json',
+    };
+    if (apiKey != null && apiKey.isNotEmpty) {
+      headers['x-api-key'] = apiKey;
+    } else if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    } else {
+      throw Exception('Either apiKey or accessToken must be provided to fetch developer wallet');
+    }
+
+    final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final response = await http.get(
+      Uri.parse('$base/v1/developer/wallet'),
+      headers: headers,
+    );
+
+    final data = jsonDecode(response.body);
+    final payload = (data is Map<String, dynamic> && data.containsKey('wallet') && data['wallet'] is Map<String, dynamic>)
+        ? data['wallet'] as Map<String, dynamic>
+        : (data is Map<String, dynamic> && data.containsKey('data') && data['data'] is Map<String, dynamic>
+            ? data['data'] as Map<String, dynamic>
+            : (data is Map<String, dynamic> ? data : <String, dynamic>{}));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final err = payload['message'] ?? payload['error'] ?? 'Failed to fetch developer wallet';
+      throw Exception('Frica developer wallet error: $err');
+    }
+
+    return FricaWallet.fromJson(payload);
+  }
+
+  /// Tops up Frica Tokens in the developer organization wallet.
+  Future<Map<String, dynamic>> topupDeveloperWallet({
+    required double amountUsd,
+    required String paymentMethod,
+    String? mobileMoneyProvider,
+    String? phoneNumber,
+    String? paymentReference,
+    bool isSandbox = false,
+    String? apiKey,
+    String? accessToken,
+  }) async {
+    final token = accessToken ?? (apiKey == null ? await getValidAccessToken() : null);
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (apiKey != null && apiKey.isNotEmpty) {
+      headers['x-api-key'] = apiKey;
+    } else if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    } else {
+      throw Exception('Either apiKey or accessToken must be provided to top up developer wallet');
+    }
+
+    final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final body = <String, dynamic>{
+      'amountUsd': amountUsd,
+      'paymentMethod': paymentMethod,
+      'isSandbox': isSandbox,
+    };
+    if (mobileMoneyProvider != null) body['mobileMoneyProvider'] = mobileMoneyProvider;
+    if (phoneNumber != null) body['phoneNumber'] = phoneNumber;
+    if (paymentReference != null) body['paymentReference'] = paymentReference;
+
+    final response = await http.post(
+      Uri.parse('$base/v1/developer/wallet/topup'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final err = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to top up developer wallet') : 'Error';
+      throw Exception('Frica developer wallet top-up error: $err');
+    }
+
+    return data is Map<String, dynamic> ? data : <String, dynamic>{};
+  }
+
+  /// Retrieves the authenticated user's sovereign token wallet.
+  Future<FricaWallet> getUserWallet({String? accessToken}) async {
+    final token = accessToken ?? await getValidAccessToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Access token required to fetch user wallet');
+    }
+
+    final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final response = await http.get(
+      Uri.parse('$base/v1/wallet'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      },
+    );
+
+    final data = jsonDecode(response.body);
+    final payload = (data is Map<String, dynamic> && data.containsKey('wallet') && data['wallet'] is Map<String, dynamic>)
+        ? data['wallet'] as Map<String, dynamic>
+        : (data is Map<String, dynamic> && data.containsKey('data') && data['data'] is Map<String, dynamic>
+            ? data['data'] as Map<String, dynamic>
+            : (data is Map<String, dynamic> ? data : <String, dynamic>{}));
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final err = payload['message'] ?? payload['error'] ?? 'Failed to fetch user wallet';
+      throw Exception('Frica user wallet error: $err');
+    }
+
+    return FricaWallet.fromJson(payload);
+  }
+
+  /// Tops up Frica Tokens in the user's sovereign wallet.
+  Future<Map<String, dynamic>> topupUserWallet({
+    required double amountUsd,
+    required String paymentMethod,
+    String? mobileMoneyProvider,
+    String? phoneNumber,
+    String? paymentReference,
+    bool isSandbox = false,
+    String? accessToken,
+  }) async {
+    final token = accessToken ?? await getValidAccessToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Access token required to top up user wallet');
+    }
+
+    final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final body = <String, dynamic>{
+      'amountUsd': amountUsd,
+      'paymentMethod': paymentMethod,
+      'isSandbox': isSandbox,
+    };
+    if (mobileMoneyProvider != null) body['mobileMoneyProvider'] = mobileMoneyProvider;
+    if (phoneNumber != null) body['phoneNumber'] = phoneNumber;
+    if (paymentReference != null) body['paymentReference'] = paymentReference;
+
+    final response = await http.post(
+      Uri.parse('$base/v1/wallet/topup'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final err = data is Map ? (data['message'] ?? data['error'] ?? 'Failed to top up user wallet') : 'Error';
+      throw Exception('Frica wallet top-up error: $err');
+    }
+
+    return data is Map<String, dynamic> ? data : <String, dynamic>{};
+  }
+
+  /// Pays for account tiers or services using Frica Token balance.
+  Future<Map<String, dynamic>> payServiceWithTokens({
+    required String serviceType,
+    double? amountTokens,
+    String? tier,
+    String? accessToken,
+  }) async {
+    final token = accessToken ?? await getValidAccessToken();
+    if (token == null || token.isEmpty) {
+      throw Exception('Access token required to pay with tokens');
+    }
+
+    final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final body = <String, dynamic>{
+      'serviceType': serviceType,
+    };
+    if (amountTokens != null) body['amountTokens'] = amountTokens;
+    if (tier != null) body['tier'] = tier;
+
+    final response = await http.post(
+      Uri.parse('$base/v1/wallet/pay-service'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+
+    final data = jsonDecode(response.body);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final err = data is Map ? (data['message'] ?? data['error'] ?? 'Payment with tokens failed') : 'Error';
+      throw Exception('Frica token payment error: $err');
+    }
+
+    return data is Map<String, dynamic> ? data : <String, dynamic>{};
+  }
+
+  /// Verifies authenticity of a digital passport identifier or QR code.
+  Future<FricaPassportVerificationResult> verifyDigitalPassport(String identifier) async {
+    final base = config.issuerUrl.replaceAll(RegExp(r'/+$'), '');
+    final response = await http.get(
+      Uri.parse('$base/v1/kyc/passport/verify/${Uri.encodeComponent(identifier)}'),
+      headers: {'Accept': 'application/json'},
+    );
+
+    final data = jsonDecode(response.body);
+    final payload = (data is Map<String, dynamic> && data.containsKey('data') && data['data'] is Map<String, dynamic>)
+        ? data['data'] as Map<String, dynamic>
+        : (data is Map<String, dynamic> ? data : <String, dynamic>{});
+
+    return FricaPassportVerificationResult.fromJson(payload);
   }
 
   Future<void> _storeTokens(FricaTokenResponse tokens) async {

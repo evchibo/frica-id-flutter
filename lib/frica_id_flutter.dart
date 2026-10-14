@@ -8,6 +8,7 @@ export 'src/models/config.dart';
 export 'src/models/token_response.dart';
 export 'src/models/user_info.dart';
 export 'src/models/kyc_models.dart';
+export 'src/models/wallet_models.dart';
 export 'src/storage/token_storage.dart';
 export 'src/widgets/frica_logo.dart';
 export 'src/widgets/frica_sign_in_button.dart';
