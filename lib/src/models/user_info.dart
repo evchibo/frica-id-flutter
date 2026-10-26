@@ -1,7 +1,10 @@
 /// Authenticated Frica User Profile Claims.
 class FricaUserInfo {
-  /// The unique subject ID prefixed with `frica_` (e.g. `frica_00c2...`).
+  /// Opaque OAuth subject used to match accounts, rather than for public display.
   final String sub;
+
+  /// Public Frica ID (for example `FID-7K9MX4QP2N8C`), returned with `profile` scope.
+  final String? publicId;
 
   /// User's full display name.
   final String name;
@@ -56,6 +59,7 @@ class FricaUserInfo {
 
   const FricaUserInfo({
     required this.sub,
+    this.publicId,
     required this.name,
     required this.email,
     this.emailVerified = false,
@@ -88,7 +92,11 @@ class FricaUserInfo {
   bool get isKycRejected => kycStatus?.toUpperCase() == 'REJECTED';
 
   factory FricaUserInfo.fromJson(Map<String, dynamic> json) {
+    final publicId = json['public_id'] is String && (json['public_id'] as String).isNotEmpty
+        ? json['public_id']
+        : json['publicId'];
     return FricaUserInfo(
+      publicId: publicId is String && publicId.isNotEmpty ? publicId : null,
       sub: (json['sub'] ?? json['id'] ?? '')?.toString() ?? '',
       name: (json['name'] ?? json['preferred_username'] ?? '')?.toString() ?? '',
       email: (json['email'] ?? json['email_address'] ?? '')?.toString() ?? '',
@@ -113,6 +121,7 @@ class FricaUserInfo {
 
   Map<String, dynamic> toJson() => {
         'sub': sub,
+        'public_id': publicId,
         'name': name,
         'email': email,
         'email_verified': emailVerified,
@@ -132,3 +141,4 @@ class FricaUserInfo {
         'raw_claims': rawClaims,
       };
 }
+
