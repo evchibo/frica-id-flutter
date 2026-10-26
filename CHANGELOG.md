@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- Expose the profile-scoped `public_id` claim as optional `publicId` for public display.
+- Preserve the opaque OAuth `sub` for account matching and compatibility with older profile responses.
+- Cover missing/malformed claims, stored or serialized profiles, and compact avatar URLs.
+
 ## 1.1.0
 
 - Added Sovereign Wallet & Frica Tokens (`FRICA`) Support:
@@ -72,3 +78,4 @@
 - Built-in `FricaSignInButton` Widget with AMOLED pure black and Frica Gold styling.
 - Secure token exchange and refresh lifecycle management.
 - User profile retrieval and deep link integration for iOS, Android, and Web.
+

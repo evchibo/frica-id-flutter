@@ -2,6 +2,32 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:frica_id_flutter/frica_id_flutter.dart';
 
 void main() {
+  test('Public Frica ID is optional, round-trips and remains separate from subject', () {
+    const subject = 'usr_opaque_account_reference';
+    for (final claims in <Map<String, dynamic>>[
+      {'public_id': 'FID-7K9MX4QP2N8C'},
+      {'publicId': 'FID-7K9MX4QP2N8C'},
+      {'public_id': 'FID-7K9MX4QP2N8C', 'publicId': 'stale-alias'},
+      {},
+      {'public_id': 42, 'publicId': false},
+    ]) {
+      final expected = claims['public_id'] is String || claims['publicId'] is String
+          ? 'FID-7K9MX4QP2N8C' : null;
+      final user = FricaUserInfo.fromJson({
+        'sub': subject,
+        'name': 'Frica member',
+        'picture': 'https://api.frica.id/users/FID-7K9MX4QP2N8C/avatar',
+        ...claims,
+      });
+      expect(user.publicId, expected);
+      expect(user.sub, subject);
+      expect(user.avatarUrl, startsWith('https://api.frica.id/users/'));
+      expect(user.toJson()['public_id'], expected);
+      expect(FricaUserInfo.fromJson(user.toJson()).publicId, expected);
+      expect(user.rawClaims['sub'], subject);
+    }
+  });
+
   group('PKCE Tests', () {
     test('generateCodeVerifier creates valid RFC 7636 verifier', () {
       final verifier = FricaPkce.generateCodeVerifier(64);
@@ -186,3 +212,4 @@ void main() {
     });
   });
 }
+
