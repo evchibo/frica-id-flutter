@@ -17,8 +17,27 @@ jobs:
         with:
           channel: stable
           cache: true
+      - run: python3 -B -m unittest discover -s tools -p 'test_*.py'
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
       - run: dart pub publish --dry-run
 
+  release:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: sdk-release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+      - name: Tag new version and dispatch registry publishing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/release.py

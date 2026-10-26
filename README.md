@@ -265,3 +265,9 @@ if (result.verified) {
 Apache-2.0 © Frica ID Team
 
 
+
+## Release automation
+
+Bump the package version and update the changelog in a pull request. After a merge to `main`, passing CI creates an immutable `v<version>` tag and dispatches the existing publish workflow from that tag. Published versions are skipped; existing tags are never moved. Publishing uses the registry's existing OIDC trusted-publishing configuration, without a long-lived package token.
+
+For pub.dev, enable **Publishing from GitHub Actions → workflow_dispatch** alongside tag pushes in the package's Admin settings. The dispatched workflow must run on the version tag. Failed publishing runs can be retried from GitHub Actions; do not change an existing release tag.
