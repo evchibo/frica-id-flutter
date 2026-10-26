@@ -2,7 +2,7 @@ import importlib.util
 import pathlib
 import unittest
 
-spec = importlib.util.spec_from_file_location('release', pathlib.Path(__file__).parents[1] / 'tools/release.py')
+spec = importlib.util.spec_from_file_location('release', pathlib.Path(__file__).parents[1] / 'tool/release.py')
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
